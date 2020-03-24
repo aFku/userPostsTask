@@ -1,22 +1,8 @@
 import requests
 import json
 import math
-
-posts = []
-users = []
-
-
-class Request:
-    _req = None
-
-    def __init__(self, url: str):
-        self._req = requests.get(url)
-
-    def get_text(self):
-        return self._req.text
-
-    def __str__(self):
-        return self._req.url
+from collections import Counter
+import sys
 
 
 class Post:
@@ -30,10 +16,10 @@ class User:
 
     user_posts = []
 
-    def __init__(self, data: dict):
+    def __init__(self, data: dict, post_dict: dict):
         for key in data.keys():
             setattr(self, key, data[key])
-        self.user_posts = [post for post in posts if post.userId == self.id]
+        self.user_posts = post_dict[self.id]
 
     def post_count(self):
         return len(self.user_posts)
@@ -43,27 +29,31 @@ class User:
         return (float(geo["lat"]), float(geo["lng"]))
 
 
+def count_user_posts(user_list: list):
+    return [user.name + " napisał(a) " + str(user.post_count()) + " postów." for user in user_list]
 
-def postCounter_allUsers():
-    return [user.name + " wrote " + str(user.post_count()) + " posts." for user in users]
 
-
-def search_nonuniqueTitles():
-    return [post.title for post in posts if posts.count(post.title) > 1]
+def search_nonunique_titles(post_list: list):
+    titles_map = Counter(post_list)
+    return [title for title in titles_map.keys() if titles_map[title] > 1]
 
 
 def calc_distance(point1, point2):
-    # Distance between points --> |AB| = sqrt( (x2-x1)^2 + (y2-y1)^2 )
+    """
+    Distance between points --> |AB| = sqrt( (x2-x1)^2 + (y2-y1)^2 )
+
+    Take two tuples with two floats (points). Return magnitude of vector between them.
+    """
     calculation = math.pow(point2[0]-point1[0],2) + math.pow(point2[1]-point1[1] ,2)
     return math.sqrt(calculation)
 
 
-def find_friends():
-    # Return list of two elements tuples. First element -> seeker, Second element -> nearest user
+def find_friends(user_list: list):
+    """ Return list of two elements tuples. First element -> seeker, Second element -> nearest user. """
     result = []
-    for user in users:
+    for user in user_list:
         best = {"User": None, "Distance": math.inf}
-        for others in users:
+        for others in user_list:
             distance = calc_distance(user.get_coords(), others.get_coords())
             if others is not user and distance < best["Distance"]:
                 best["User"] = others
@@ -74,32 +64,41 @@ def find_friends():
     return result
 
 
-if __name__ == "__main__":
-    req_users = Request("https://jsonplaceholder.typicode.com/users")
-    req_posts = Request("https://jsonplaceholder.typicode.com/posts")
+def main():
 
-    users_list = json.loads(req_users.get_text())
-    posts_list = json.loads(req_posts.get_text())
+    try:
+        req_users = requests.get("https://jsonplaceholder.typicode.com/users")
+        req_posts = requests.get("https://jsonplaceholder.typicode.com/posts")
+    except requests.exceptions.RequestException:
+        print("Given URLs are unreachable! Leaving...", file=sys.stderr)
+        exit()
+
+    users_list = json.loads(req_users.text)
+    posts_list = json.loads(req_posts.text)
 
     posts = [Post(line) for line in posts_list]
-    users = [User(line) for line in users_list]
 
-    print("#"*200)
+    relation = {post.userId: [] for post in posts}  # Map userId: list of post objects
+    for post in posts:
+        relation[post.userId].append(post)
 
-    print(postCounter_allUsers())
-    print("\n\n\n\n")
-    print(search_nonuniqueTitles())
-    print("\n\n\n\n")
-    print(find_friends())
-    print("\n\n\n\n")
+    users = [User(line, relation) for line in users_list]
 
-    for x in users:
-        print(x.name + ":")
-        for k, y in enumerate(x.user_posts):
-            print("\t" + str(k + 1) + "." + y.title)
-    print("\n\n\n\nEach user wrote 10 posts")
+    print("Initialization completed!\n")
 
-    print(len(set(posts)))
-    print("\n\n\n\nNo non-unique titles here")
+    for user in users:
+        print("User with ID: ", str(user.id), " wrote this posts:", user.user_posts)
+    print("\n\n")
+
+    for string_ in count_user_posts(users):
+        print(string_)
+
+    print("\n\nList of non-unique titles: ", search_nonunique_titles(posts), "\n\n")
+
+    print("Nearest person for each user:")
+    for pair in find_friends(users):
+        print(pair)
 
 
+if __name__ == "__main__":
+    main()
