@@ -11,6 +11,12 @@ class Post:
         for key in data.keys():
             setattr(self, key, data[key])
 
+    def __eq__(self, other):
+        for attr in self.__dict__.keys():
+            if self.__dict__[attr] != getattr(other, attr, None):
+                return False
+        return True
+
 
 class User:
 
@@ -19,9 +25,9 @@ class User:
     def __init__(self, data: dict, post_dict: dict):
         for key in data.keys():
             setattr(self, key, data[key])
-        self.user_posts = post_dict[self.id]
+        self.user_posts = post_dict.get(self.id, [])
 
-    def post_count(self):
+    def get_posts_count(self):
         return len(self.user_posts)
 
     def get_coords(self):
@@ -30,11 +36,11 @@ class User:
 
 
 def count_user_posts(user_list: list):
-    return [user.name + " napisał(a) " + str(user.post_count()) + " postów." for user in user_list]
+    return [user.name + " napisał(a) " + str(user.get_posts_count()) + " postów." for user in user_list]
 
 
 def search_nonunique_titles(post_list: list):
-    titles_map = Counter(post_list)
+    titles_map = Counter([post.title for post in post_list])
     return [title for title in titles_map.keys() if titles_map[title] > 1]
 
 
@@ -44,7 +50,7 @@ def calc_distance(point1, point2):
 
     Take two tuples with two floats (points). Return magnitude of vector between them.
     """
-    calculation = math.pow(point2[0]-point1[0],2) + math.pow(point2[1]-point1[1] ,2)
+    calculation = math.pow(point2[0]-point1[0], 2) + math.pow(point2[1]-point1[1], 2)
     return math.sqrt(calculation)
 
 
@@ -63,6 +69,11 @@ def find_friends(user_list: list):
         result.append((user.name, best["User"].name))
     return result
 
+def make_relation(post_list: list):
+    result = {post.userId: [] for post in post_list}  # Map userId: list of post objects
+    for post in post_list:
+        result[post.userId].append(post)
+    return result
 
 def main():
 
@@ -78,9 +89,7 @@ def main():
 
     posts = [Post(line) for line in posts_list]
 
-    relation = {post.userId: [] for post in posts}  # Map userId: list of post objects
-    for post in posts:
-        relation[post.userId].append(post)
+    relation = make_relation(posts)
 
     users = [User(line, relation) for line in users_list]
 

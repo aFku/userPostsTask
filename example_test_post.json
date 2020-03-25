@@ -1,0 +1,38 @@
+[
+  {
+    "userId": 1,
+    "id": 1,
+    "title": "Beautiful weather!",
+    "body": "Hello! Such a beautiful day"
+  },
+  {
+    "userId": 5,
+    "id": 23,
+    "title": "Sad weather!",
+    "body": "Such a lonely day ~ System of a down"
+  },
+  {
+    "userId": 3,
+    "id": 54,
+    "title": "Future plans",
+    "body": "Tomorrow I will go to cinema!"
+  },
+  {
+    "userId": 5,
+    "id": 10,
+    "title": "Bored!",
+    "body": "This boredom is very annoying!"
+  },
+  {
+    "userId": 1,
+    "id": 21,
+    "title": "Sad weather!",
+    "body": "Haha, I lied! :)"
+  },
+  {
+    "userId": 5,
+    "id": 101,
+    "title": "Lier!",
+    "body": "I don`t like liers!"
+  }
+]
