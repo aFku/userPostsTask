@@ -1,10 +1,30 @@
 import unittest
 import main
 import json
+from contextlib import contextmanager
+import sys
 
-with open("example_test_post.json", "r") as posts_file, open("example_test_user.json", "r") as users_file:
+
+@contextmanager
+def supp_stderr():
+    save_stderr = sys.stderr    # save stderr
+
+    class NullStd(object):
+        def write(self, _): pass
+    sys.stderr = NullStd()     # create object which data from print()
+    try:
+        yield          # call generator
+    finally:
+        sys.stderr = save_stderr   # make stderr to it`s previous state
+
+with open("examples/example_test_post.json", "r") as posts_file, \
+     open("examples/example_test_user.json", "r") as users_file, \
+     open("examples/example_single_post.json", "r") as s_post, \
+     open("examples/example_single_user.json", "r") as s_user:
     posts_test = json.loads(''.join(posts_file.readlines()))
     users_test = json.loads(''.join(users_file.readlines()))
+    single_post = json.loads(''.join(s_post.readlines()))
+    single_user = json.loads(''.join(s_user.readlines()))
 
 
 def create_post_list(post_source):
@@ -15,6 +35,7 @@ def create_user_list(user_source, post_source):
     relation = main.make_relation(create_post_list(post_source))
     return [main.User(user, relation) for user in user_source]
 
+
 class TestPost(unittest.TestCase):
 
     def test_create_post_from_json(self):
@@ -22,6 +43,16 @@ class TestPost(unittest.TestCase):
             create_post_list(posts_test)
         except:
             self.fail("Cannot create Post instance!")
+
+    def test_if_post_created_correctly_from_json(self):
+        post = main.Post(single_post[0])
+        check = main.Post({})
+        check_attr = (("userId", 10), ("id", 123), ("title", "Beautiful weather!"),
+                      ("body", "Hello! Such a beautiful day"))
+        for key, value in check_attr:
+            check.__setattr__(key, value)
+        self.assertEqual(post, check)
+
 
     def test_search_nonunique(self):
         self.assertEqual(main.search_nonunique_titles(create_post_list(posts_test)), ["Sad weather!"])
@@ -46,6 +77,19 @@ class TestUser(unittest.TestCase):
             create_user_list(users_test, posts_test)
         except:
             self.fail("Cannot create User instance!")
+
+    def test_if_user_created_correctly_from_json(self):
+        user = main.User(single_user[0], {})
+
+        with supp_stderr():
+            check = main.User({}, {})   # need to suppress stderr, because empty object has not id attribute
+
+        check_attr = (("id", 1), ("name", "Leanne Graham"), ("username", "Bret"), ("email", "Sincere@april.biz"),
+                      ("address", {"street": "Kulas Light", "suite": "Apt. 556", "city": "Gwenborough",
+                                   "zipcode": "92998-3874", "geo": {"lat": "-37.3159", "lng": "81.1496"}}))
+        for key, value in check_attr:
+            check.__setattr__(key, value)
+        self.assertEqual(user, check)
 
     def test_post_count(self):
         users = create_user_list(users_test, posts_test)

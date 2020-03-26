@@ -25,14 +25,31 @@ class User:
     def __init__(self, data: dict, post_dict: dict):
         for key in data.keys():
             setattr(self, key, data[key])
-        self.user_posts = post_dict.get(self.id, [])
+        try:
+            self.user_posts = post_dict.get(self.id, [])
+        except AttributeError:
+            print("Source data seems to does not contain user ID. Can`t attach posts to user!", file=sys.stderr)
 
     def get_posts_count(self):
         return len(self.user_posts)
 
     def get_coords(self):
-        geo = self.address["geo"]
-        return (float(geo["lat"]), float(geo["lng"]))
+        try:
+            geo = self.address["geo"]
+        except AttributeError:
+            print("This User instance seems to does not have address attribute!", file=sys.stderr)
+            return None
+        except KeyError:
+            print("Address of this user does not contain geological coordinates!", file=sys.stderr)
+            return None
+        else:
+            return (float(geo["lat"]), float(geo["lng"]))
+
+    def __eq__(self, other):
+        for attr in self.__dict__.keys():
+            if self.__dict__[attr] != getattr(other, attr, None):
+                return False
+        return True
 
 
 def count_user_posts(user_list: list):
